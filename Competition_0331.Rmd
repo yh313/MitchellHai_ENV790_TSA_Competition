@@ -1,0 +1,70 @@
+---
+
+title: "Untitled"
+author: "Yu Hai"
+date: "2022/3/31"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+library(lubridate)
+library(ggplot2)
+library(forecast)
+library(Kendall)
+library(tseries)
+library(outliers)
+library(tidyverse)
+library(smooth)
+library(zoo)
+library(kableExtra)
+```
+
+```{r}
+load_data<-read_excel(path="./Data/load.xlsx")
+load_data
+```
+
+```{r}
+load_data$load_daily_avg = rowMeans(load_data[,c(3:26)])
+load_data
+ts_load_daily_avg<-msts(load_data$load_daily_avg,seasonal.periods =c(7,365.25),start=c(2005,01,01))
+```
+
+```{r}
+n_for=365
+ts_load_daily_avg_train<-subset(ts_load_daily_avg,end=length(ts_load_daily_avg)-n_for)
+ts_load_daily_avg_test<-subset(ts_load_daily_avg,start=length(ts_load_daily_avg)-n_for)
+ts_load_daily_avg_train %>% mstl() %>%
+autoplot()
+autoplot(ts_load_daily_avg_train)
+```
+
