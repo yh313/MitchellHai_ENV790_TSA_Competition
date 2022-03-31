@@ -168,4 +168,8 @@ kbl(scores,
 humidity_data<-read_excel(path="./Data/relative_humidity.xlsx")
 humidity_data
 ```
+```{r}
+temperature_data<-read_excel(path="./Data/temperature.xlsx")
+temperature_data
+```
 
