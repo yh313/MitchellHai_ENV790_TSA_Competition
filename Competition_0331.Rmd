@@ -1,40 +1,16 @@
 ---
 
-title: "Untitled"
-author: "Yu Hai"
+title: "TSA Forecasting Competition"
+author: "Yu Hai and Jack Mitchell"
 date: "2022/3/31"
 output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,tidy.opts=list(width.cutoff=80), tidy=FALSE) 
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-```{r}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r}
+```{r package, message=FALSE, warning=FALSE}
 library(readxl)
 library(lubridate)
 library(ggplot2)
@@ -48,24 +24,47 @@ library(zoo)
 library(kableExtra)
 ```
 
-```{r}
-load_data<-read_excel(path="./Data/load.xlsx")
-load_data
+```{r import data}
+load_data<-read_excel(path="./Data/load.xlsx") #import load data
+head(load_data)
+
+humidity_data<-read_excel(path="./Data/relative_humidity.xlsx") #import humidity data
+head(humidity_data)
+
+temperature_data<-read_excel(path="./Data/temperature.xlsx") #import temp data
+head(temperature_data)
 ```
 
 ```{r}
-load_data$load_daily_avg = rowMeans(load_data[,c(3:26)])
-load_data
-ts_load_daily_avg<-msts(load_data$load_daily_avg,seasonal.periods =c(7,365.25),start=c(2005,01,01))
+load_data$load_daily_avg = rowMeans(load_data[,c(3:26)]) #calculate avg daily load
+head(load_data)
+ts_load_daily_avg<-msts(load_data$load_daily_avg,seasonal.periods =c(7,365.25),start=c(2005,01,01)) #convert to time series
+
+
+humidity_data_daily <- humidity_data %>%  #avg daily humidity data
+  mutate( Year = year(date),
+          Month = month(date),
+          Day = day(date)) %>%
+  select( date, Year, Month, Day, hr, rh_ws1) %>%
+  group_by(date,Year,Month,Day) %>%
+  summarise(daily_mean_humidity = mean(rh_ws1))
+
+temperature_data_daily <- temperature_data %>% #avg daily temperature data
+  mutate( Year = year(date),
+          Month = month(date),
+          Day = day(date)) %>%
+  select( date, Year, Month, Day, hr, t_ws1) %>%
+  group_by(date,Year,Month,Day) %>%
+  summarise(daily_mean_temp = mean(t_ws1)) 
 ```
 
 ```{r}
-n_for=365
-ts_load_daily_avg_train<-subset(ts_load_daily_avg,end=length(ts_load_daily_avg)-n_for)
-ts_load_daily_avg_test<-subset(ts_load_daily_avg,start=length(ts_load_daily_avg)-n_for)
+n_for=365 # days in a year
+ts_load_daily_avg_train<-subset(ts_load_daily_avg,end=length(ts_load_daily_avg)-n_for) #create training subset
+ts_load_daily_avg_test<-subset(ts_load_daily_avg,start=length(ts_load_daily_avg)-n_for) #create testing subset 
 ts_load_daily_avg_train %>% mstl() %>%
-autoplot()
-autoplot(ts_load_daily_avg_train)
+autoplot() #decompose training subset
+autoplot(ts_load_daily_avg_train) #time series plot of training subset
 ```
 ```{r}
 #STL+ETS
@@ -76,7 +75,9 @@ autoplot(ts_load_daily_avg) +
   autolayer(ETS_fit, series="STL + ETS",PI=FALSE) +
   ylab("Daily Load")
 ```
+
 ```{r}
+#Arima model with fourier terms
 ARIMA_Four_fit <- auto.arima(ts_load_daily_avg_train, 
                              seasonal=FALSE, 
                              lambda=0,
@@ -135,7 +136,8 @@ autoplot(ts_load_daily_avg) +
   autolayer(NN_for, series="Neural Network",PI=FALSE)+
   ylab("Daily Load") 
 ```
-```{r}
+
+```{r accuracy scores}
 #Model 1: STL + ETS
 ETS_scores <- accuracy(ETS_fit$mean,ts_load_daily_avg_test)  
 
@@ -147,7 +149,9 @@ TBATS_scores <- accuracy(TBATS_for$mean,ts_load_daily_avg_test)
 
 # Model 4:  Neural Network 
 NN_scores <- accuracy(NN_for$mean,ts_load_daily_avg_test)
+```
 
+```{r summarize scores}
 scores <- as.data.frame(
   rbind(ETS_scores, ARIMA_scores, TBATS_scores, NN_scores)
   )
@@ -163,13 +167,5 @@ kbl(scores,
   kable_styling(full_width = FALSE, position = "center", latex_options = "hold_position") %>%
   #highlight model with lowest RMSE
   kable_styling(latex_options="striped", stripe_index = which.min(scores[,"RMSE"]))
-```
-```{r}
-humidity_data<-read_excel(path="./Data/relative_humidity.xlsx")
-humidity_data
-```
-```{r}
-temperature_data<-read_excel(path="./Data/temperature.xlsx")
-temperature_data
 ```
 
