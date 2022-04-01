@@ -137,6 +137,32 @@ autoplot(ts_load_daily_avg) +
   ylab("Daily Load") 
 ```
 
+```{r}
+#Seasonal naive model
+SNAIVE <- snaive(ts_load_daily_avg_train, h=365)
+autoplot(SNAIVE) +
+  ylab("Daily Load") 
+
+#Plot model + observed data
+autoplot(ts_load_daily_avg) +
+  autolayer(SNAIVE, series="Seasonal Naive",PI=FALSE)+
+  ylab("Daily Load")
+```
+
+```{r}
+#Auto arima model
+ARIMA_autofit <- auto.arima(ts_load_daily_avg_train, max.D = 0, max.P = 0, max.Q = 0)
+ARIMA_forecast <- forecast::forecast(object = ARIMA_autofit, h = 365)
+autoplot(ARIMA_forecast) +
+  ylab("Daily Load")
+
+#Plot model + observed data
+autoplot(ts_load_daily_avg) +
+  autolayer(ARIMA_forecast, series="Auto Arima",PI=FALSE)+
+  ylab("Daily Load")
+```
+
+
 ```{r accuracy scores}
 #Model 1: STL + ETS
 ETS_scores <- accuracy(ETS_fit$mean,ts_load_daily_avg_test)  
@@ -149,13 +175,20 @@ TBATS_scores <- accuracy(TBATS_for$mean,ts_load_daily_avg_test)
 
 # Model 4:  Neural Network 
 NN_scores <- accuracy(NN_for$mean,ts_load_daily_avg_test)
+
+# Model 5: Seasonal Naive 
+SNAIVE_scores <- accuracy(SNAIVE$mean,ts_load_daily_avg_test)
+
+#Model 6: Auto Arima
+AutoArima_scores <- accuracy(ARIMA_forecast$mean,ts_load_daily_avg_test)
 ```
+
 
 ```{r summarize scores}
 scores <- as.data.frame(
-  rbind(ETS_scores, ARIMA_scores, TBATS_scores, NN_scores)
+  rbind(ETS_scores, ARIMA_scores, TBATS_scores, NN_scores, SNAIVE_scores,AutoArima_scores)
   )
-row.names(scores) <- c("STL+ETS", "ARIMA+Fourier","TBATS","NN")
+row.names(scores) <- c("STL+ETS", "ARIMA+Fourier","TBATS","NN", "SNAIVE", "Auto Arima")
 
 #choose model with lowest RMSE
 best_model_index <- which.min(scores[,"RMSE"])
