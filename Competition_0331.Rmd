@@ -69,6 +69,7 @@ ts_load_daily_avg_train %>% mstl() %>%
 autoplot() #decompose training subset
 autoplot(ts_load_daily_avg_train) #time series plot of training subset
 ```
+
 ```{r}
 #STL+ETS
 ts_load_daily_avg_train %>% stlf(h=365) %>% autoplot()
@@ -103,7 +104,7 @@ autoplot(ts_load_daily_avg) +
   ylab("Daily Load")
 ```
 
-
+ 
 ```{r}
 # TBATS can take time to fit
 TBATS_fit <- tbats(ts_load_daily_avg_train)
@@ -174,7 +175,7 @@ autoplot(ARIMA_temp_forecast) +
 ```{r}
 temperature_data_daily
 ts_temp_data_daily <- ts(temperature_data_daily$daily_mean_temp,frequency=365,start=c(2005,01,01), end = c(2007,09,27)) 
-ts_temp_data_daily2 <- ts(temperature_data_daily$daily_mean_temp,frequency=365,start=c(2005,01))
+ts_temp_data_daily2 <- ts(temperature_data_daily$daily_mean_temp,frequency=365,start=c(2005,01), end = C(2010,12,31))
 ggplot(data=temperature_data_daily, aes(x=date, y=daily_mean_temp)) +
   geom_line()
 plot(ts_temp_data_daily)
