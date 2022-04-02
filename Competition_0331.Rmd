@@ -161,6 +161,20 @@ autoplot(ts_load_daily_avg) +
   autolayer(ARIMA_forecast, series="Auto Arima",PI=FALSE)+
   ylab("Daily Load")
 ```
+```{r}
+ARIMA_temp_autofit <- auto.arima(ts_load_daily_avg_train, max.D = 0, max.P = 0, max.Q = 0,xreg=ts_temp_data_daily)
+ARIMA_temp_forecast <- forecast::forecast(object = ARIMA_temp_autofit, h = 365)
+autoplot(ARIMA_temp_forecast) +
+  ylab("Daily Load")
+```
+```{r}
+temperature_data_daily
+ts_temp_data_daily <- ts(temperature_data_daily$daily_mean_temp,frequency=365,start=c(2005,01,01), end = c(2007,09,27)) 
+ts_temp_data_daily2 <- ts(temperature_data_daily$daily_mean_temp,frequency=365,start=c(2005,01))
+plot(ts_temp_data_daily)
+plot(ts_temp_data_daily2)
+humidity_data_daily
+```
 
 
 ```{r accuracy scores}
