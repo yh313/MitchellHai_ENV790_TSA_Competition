@@ -22,6 +22,9 @@ library(tidyverse)
 library(smooth)
 library(zoo)
 library(kableExtra)
+#install.packages("writexl")
+library(writexl)
+
 ```
 
 ```{r import data}
@@ -214,5 +217,33 @@ kbl(scores,
   kable_styling(full_width = FALSE, position = "center", latex_options = "hold_position") %>%
   #highlight model with lowest RMSE
   kable_styling(latex_options="striped", stripe_index = which.min(scores[,"RMSE"]))
+```
+
+```{r Jan 2011 Forecasts}
+#Arima model with fourier terms
+ARIMA_Four_fit2 <- auto.arima(ts_load_daily_avg, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_load_daily_avg, 
+                                          K=c(2,12))
+                             )
+ARIMA_Four_for2 <- forecast::forecast(ARIMA_Four_fit2,
+                           xreg=fourier(ts_load_daily_avg,
+                                        K=c(2,12),
+                                        h=31),
+                           h=31
+                           ) 
+
+#Plot forecasting results
+autoplot(ARIMA_Four_for2) + ylab("Daily Load")
+
+#Convert forecasting results to dataframe
+Forecast1 <- data.frame(load = ARIMA_Four_for2[["mean"]])
+```
+
+
+```{r export results to excel}
+write.csv(Forecast1, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast1.csv")
+
 ```
 
