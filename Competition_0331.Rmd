@@ -325,7 +325,7 @@ autoplot(ARIMA_with_temp_forecast) +
 
 ```{r}
 #SS Exponential Smoothing
-SSES_fit <- es(ts_temp_daily_train,model="ZZZ",h=365,holdout=FALSE,silent="none")
+SSES_fit <- es(ts_load_daily_avg_train,model="MAM",h=365,holdout=FALSE,silent="none")
 plot(SSES_fit)
 ```
 
@@ -392,9 +392,19 @@ autoplot(ARIMA_Four_for2) + ylab("Daily Load")
 Forecast1 <- data.frame(load = ARIMA_Four_for2[["mean"]])
 ```
 
+```{r Forecast2}
+#SS Exponential Smoothing
+SSES_for <- es(ts_load_daily_avg,model="MMA",h=31,holdout=FALSE,silent="none")
+plot(SSES_for)
+
+#Convert forecasting results to dataframe
+Forecast2 <- data.frame(load = SSES_for)
+```
+
 
 ```{r export results to excel}
 write.csv(Forecast1, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast1.csv")
 
+write.csv(Forecast2, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast2.csv")
 ```
 
