@@ -393,12 +393,23 @@ Forecast1 <- data.frame(load = ARIMA_Four_for2[["mean"]])
 ```
 
 ```{r Forecast2}
+#Seasonal naive model
+SNAIVE_for <- snaive(ts_load_daily_avg, h=31)
+autoplot(SNAIVE_for) +
+  ylab("Daily Load") 
+
+#Convert forecasting results to dataframe
+Forecast2 <- data.frame(load = SNAIVE_for[["mean"]])
+```
+
+
+```{r Forecast3}
 #SS Exponential Smoothing
 SSES_for <- es(ts_load_daily_avg,model="MMA",h=31,holdout=FALSE,silent="none")
 plot(SSES_for)
 
 #Convert forecasting results to dataframe
-Forecast2 <- data.frame(load = SSES_for)
+Forecast3 <- data.frame(load = SSES_for)
 ```
 
 
