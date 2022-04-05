@@ -409,7 +409,7 @@ SSES_for <- es(ts_load_daily_avg,model="MMA",h=31,holdout=FALSE,silent="none")
 plot(SSES_for)
 
 #Convert forecasting results to dataframe
-Forecast3 <- data.frame(load = SSES_for)
+Forecast <- data.frame(load = SSES_for)
 ```
 
 
