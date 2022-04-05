@@ -24,7 +24,8 @@ library(zoo)
 library(kableExtra)
 #install.packages("writexl")
 library(writexl)
-
+#install.packages("smooth")
+library(smooth)
 ```
 
 ```{r import data}
@@ -59,6 +60,7 @@ temperature_data_daily <- temperature_data %>% #avg daily temperature data
   group_by(date,Year,Month,Day) %>%
   summarise(daily_mean_temp = mean(t_ws1)) 
 
+#convert other variables to time series
 ts_temp_daily <- ts(temperature_data_daily$daily_mean_temp,frequency=365,start=c(2005,01))
 ts_humid_daily <- ts(humidity_data_daily$daily_mean_humidity,frequency=365,start=c(2005,01))
 plot(ts_temp_daily)
@@ -72,7 +74,17 @@ ts_load_daily_avg_test<-subset(ts_load_daily_avg,start=length(ts_load_daily_avg)
 ts_load_daily_avg_train %>% mstl() %>%
 autoplot() #decompose training subset
 autoplot(ts_load_daily_avg_train) #time series plot of training subset
+
+
+#splitting temperature data into train and test sets
+ts_temp_daily_train<-subset(ts_temp_daily,end=length(ts_load_daily_avg)-n_for) 
+ts_temp_daily_test<-subset(ts_temp_daily,start=length(ts_load_daily_avg)-n_for)
+
+#splitting humidity data into train and test sets
+ts_humid_daily_train<-subset(ts_humid_daily,end=length(ts_load_daily_avg)-n_for) 
+ts_humid_daily_test<-subset(ts_humid_daily,start=length(ts_load_daily_avg)-n_for)
 ```
+
 
 ```{r}
 #STL+ETS
@@ -171,10 +183,7 @@ autoplot(ts_load_daily_avg) +
 ```
 
 ```{r}
-#splitting temperature data into train and test sets
-ts_temp_daily_train<-subset(ts_temp_daily,end=length(ts_load_daily_avg)-n_for) 
-ts_temp_daily_test<-subset(ts_temp_daily,start=length(ts_load_daily_avg)-n_for)
-
+#create temp forecasts
 temp_fit <- auto.arima(ts_temp_daily_train, 
                              seasonal=FALSE, 
                              lambda=0,
@@ -206,6 +215,41 @@ temp_for2 <- forecast::forecast(temp_fit2,
 temp_for2_df<-data.frame(new_temp=temp_for2)
 ts_temp_for2<-ts(temp_for2_df[,1])
 ```
+
+```{r}
+#create humidity forecasts
+humid_fit <- auto.arima(ts_humid_daily_train, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_humid_daily_train, 
+                                          K=12)
+                             )
+humid_for <- forecast::forecast(humid_fit,
+                           xreg=fourier(ts_humid_daily_train,
+                                        K=12,
+                                        h=365),
+                           h=365
+                         ) 
+autoplot(ts_humid_daily) +
+  autolayer(humid_for, series="humidity_forecast",PI=FALSE) +
+  ylab("Humidity")
+
+humid_fit2 <- auto.arima(ts_humid_daily, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_humid_daily, 
+                                          K=12)
+                             )
+humid_for2 <- forecast::forecast(humid_fit2,
+                           xreg=fourier(ts_humid_daily,
+                                        K=12,
+                                        h=31),
+                           h=31
+                           ) 
+humid_for2_df<-data.frame(new_humid=humid_for2)
+ts_humid_for2<-ts(humid_for2_df[,1])
+```
+
 
 ```{r}
 #SARIMA
@@ -277,18 +321,13 @@ autoplot(ts_load_daily_avg) +
 
 autoplot(ARIMA_with_temp_forecast) +
   ylab("Daily Load")
-=======
-temperature_data_daily
-ts_temp_data_daily <- ts(temperature_data_daily$daily_mean_temp,frequency=365,start=c(2005,01,01), end = c(2007,09,27)) 
-ts_temp_data_daily2 <- ts(temperature_data_daily$daily_mean_temp,frequency=365,start=c(2005,01), end = C(2010,12,31))
-ggplot(data=temperature_data_daily, aes(x=date, y=daily_mean_temp)) +
-  geom_line()
-plot(ts_temp_data_daily)
-plot(ts_temp_data_daily2)
-humidity_data_daily
->>>>>>> 7066c57591b5c82303bdc71186460130a220e4fd
 ```
 
+```{r}
+#SS Exponential Smoothing
+SSES_fit <- es(ts_temp_daily_train,model="ZZZ",h=365,holdout=FALSE,silent="none")
+plot(SSES_fit)
+```
 
 ```{r accuracy scores}
 #Model 1: STL + ETS
@@ -329,7 +368,9 @@ kbl(scores,
   kable_styling(latex_options="striped", stripe_index = which.min(scores[,"RMSE"]))
 ```
 
-```{r Jan 2011 Forecasts}
+#January 2011 Forecasts
+
+```{r Forecast 1}
 #Arima model with fourier terms
 ARIMA_Four_fit2 <- auto.arima(ts_load_daily_avg, 
                              seasonal=FALSE, 
