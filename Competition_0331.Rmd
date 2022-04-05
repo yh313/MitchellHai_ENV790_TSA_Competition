@@ -35,7 +35,6 @@ humidity_data<-read_excel(path="./Data/relative_humidity.xlsx") #import humidity
 head(humidity_data)
 
 temperature_data<-read_excel(path="./Data/temperature.xlsx") #import temp data
-head(temperature_data)
 ```
 
 ```{r}
@@ -59,6 +58,11 @@ temperature_data_daily <- temperature_data %>% #avg daily temperature data
   select( date, Year, Month, Day, hr, t_ws1) %>%
   group_by(date,Year,Month,Day) %>%
   summarise(daily_mean_temp = mean(t_ws1)) 
+
+ts_temp_daily <- ts(temperature_data_daily$daily_mean_temp,frequency=365,start=c(2005,01))
+ts_humid_daily <- ts(humidity_data_daily$daily_mean_humidity,frequency=365,start=c(2005,01))
+plot(ts_temp_daily)
+plot(ts_humid_daily)
 ```
 
 ```{r}
@@ -165,21 +169,112 @@ autoplot(ts_load_daily_avg) +
   ylab("Daily Load")
 ```
 ```{r}
-ARIMA_temp_autofit <- auto.arima(ts_load_daily_avg_train, max.D = 0, max.P = 0, max.Q = 0,xreg=ts_temp_data_daily)
-ARIMA_temp_forecast <- forecast::forecast(object = ARIMA_temp_autofit, h = 365)
-autoplot(ARIMA_temp_forecast) +
-  ylab("Daily Load")
+#splitting temperature data into train and test sets
+ts_temp_daily_train<-subset(ts_temp_daily,end=length(ts_load_daily_avg)-n_for) 
+ts_temp_daily_test<-subset(ts_temp_daily,start=length(ts_load_daily_avg)-n_for)
+
+temp_fit <- auto.arima(ts_temp_daily_train, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_temp_daily_train, 
+                                          K=12)
+                             )
+temp_for <- forecast::forecast(temp_fit,
+                           xreg=fourier(ts_temp_daily_train,
+                                        K=12,
+                                        h=365),
+                           h=365
+                         ) 
+autoplot(ts_temp_daily) +
+  autolayer(temp_for, series="temp_forecast",PI=FALSE) +
+  ylab("Temperature")
+
+temp_fit2 <- auto.arima(ts_temp_daily, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_temp_daily, 
+                                          K=12)
+                             )
+temp_for2 <- forecast::forecast(temp_fit2,
+                           xreg=fourier(ts_temp_daily,
+                                        K=12,
+                                        h=31),
+                           h=31
+                           ) 
+temp_for2_df<-data.frame(new_temp=temp_for2)
+ts_temp_for2<-ts(temp_for2_df[,1])
 ```
 
 ```{r}
-temperature_data_daily
-ts_temp_data_daily <- ts(temperature_data_daily$daily_mean_temp,frequency=365,start=c(2005,01,01), end = c(2007,09,27)) 
-ts_temp_data_daily2 <- ts(temperature_data_daily$daily_mean_temp,frequency=365,start=c(2005,01))
-ggplot(data=temperature_data_daily, aes(x=date, y=daily_mean_temp)) +
-  geom_line()
-plot(ts_temp_data_daily)
-plot(ts_temp_data_daily2)
-humidity_data_daily
+#SARIMA
+SARIMA_autofit <- auto.arima(ts_load_daily_avg_train)
+print(SARIMA_autofit)
+
+SARIMA_forecast <- forecast::forecast(object = ts_load_daily_avg_train, h = 365)
+plot(SARIMA_forecast)
+
+autoplot(ts_load_daily_avg) +
+  autolayer(SARIMA_forecast, series="temp_forecast",PI=FALSE) +
+  ylab("Daily Load")
+
+#SARIMA forecast for Jan 2022
+SARIMA_autofit3 <- auto.arima(ts_load_daily_avg)
+
+SARIMA_forecast3 <- forecast::forecast(object = SARIMA_autofit3,h = 31)
+
+autoplot(SARIMA_forecast3) + ylab("Daily Load")
+
+#SARIMA forecast with temperature for Jan 2022
+SARIMA_autofit2 <- auto.arima(ts_load_daily_avg,xreg=ts_temp_daily)
+print(SARIMA_autofit2)
+
+SARIMA_forecast2 <- forecast::forecast(object = SARIMA_autofit2, xreg=ts_temp_for2,h = 31)
+plot(SARIMA_forecast2)
+
+autoplot(SARIMA_forecast2) + ylab("Daily Load")
+```
+
+
+
+
+```{r}
+#Arima model with fourier terms + temperature
+ARIMA_Four_temp_fit <- auto.arima(ts_load_daily_avg_train, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=cbind(ts_temp_daily_train,fourier(ts_load_daily_avg_train, 
+                                          K=c(2,12))
+                             ))
+
+ARIMA_Four_temp_for <- forecast::forecast(ARIMA_Four_temp_fit,
+                           xreg=cbind(ts_temp_daily_train,fourier(ts_load_daily_avg_train,
+                                        K=c(2,12)),
+                                        h=365),
+                           h=365
+                           ) 
+
+#Plot foresting results
+autoplot(ARIMA_Four_temp_for) + ylab("Daily Load")
+
+#Plot model + observed data
+autoplot(ts_load_daily_avg) +
+  autolayer(ARIMA_Four_temp_for, series="ARIMA_FOURIER",PI=FALSE) +
+  ylab("Daily Load")
+```
+
+
+```{r}
+#Auto arima with temperature
+ARIMA_with_temp_autofit <- auto.arima(ts_load_daily_avg_train, max.D = 0, max.P = 0, max.Q = 0,xreg=ts_temp_daily_train)
+
+ARIMA_with_temp_forecast <- forecast::forecast(object = ARIMA_with_temp_autofit,xreg=ts_temp_daily_test, h = 365)
+
+autoplot(ts_load_daily_avg) +
+  autolayer(ARIMA_with_temp_forecast, series="Auto Arima",PI=FALSE)+
+  ylab("Daily Load")
+
+autoplot(ARIMA_with_temp_forecast) +
+  ylab("Daily Load")
 ```
 
 
