@@ -44,8 +44,6 @@ load_data_rm_na <- lapply(load_data$load_daily_avg,na.aggregate)
 ts_load_daily_avg<-msts(load_data$load_daily_avg,seasonal.periods =c(7,365.25),start=c(2005,01,01)) #convert to time series
 ts_load_daily_avg_rm_na3<-msts(load_data_rm_na,seasonal.periods =c(7,365.25),start=c(2005,01,01)) #convert to time series
 
-
-
 humidity_data_daily <- humidity_data %>%  #avg daily humidity data
   mutate( Year = year(date),
           Month = month(date),
