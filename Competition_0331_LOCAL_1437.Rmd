@@ -40,10 +40,8 @@ temperature_data<-read_excel(path="./Data/temperature.xlsx") #import temp data
 
 ```{r}
 load_data$load_daily_avg = rowMeans(load_data[,c(3:26)]) #calculate avg daily load
-load_data_rm_na <- lapply(load_data$load_daily_avg,na.aggregate)
+head(load_data)
 ts_load_daily_avg<-msts(load_data$load_daily_avg,seasonal.periods =c(7,365.25),start=c(2005,01,01)) #convert to time series
-ts_load_daily_avg_rm_na3<-msts(load_data_rm_na,seasonal.periods =c(7,365.25),start=c(2005,01,01)) #convert to time series
-
 
 
 humidity_data_daily <- humidity_data %>%  #avg daily humidity data
@@ -265,6 +263,13 @@ autoplot(ts_load_daily_avg) +
   autolayer(SARIMA_forecast, series="temp_forecast",PI=FALSE) +
   ylab("Daily Load")
 
+#SARIMA forecast for Jan 2022
+SARIMA_autofit3 <- auto.arima(ts_load_daily_avg)
+
+SARIMA_forecast3 <- forecast::forecast(object = SARIMA_autofit3,h = 31)
+
+autoplot(SARIMA_forecast3) + ylab("Daily Load")
+
 #SARIMA forecast with temperature for Jan 2022
 SARIMA_autofit2 <- auto.arima(ts_load_daily_avg,xreg=ts_temp_daily)
 print(SARIMA_autofit2)
@@ -287,11 +292,10 @@ ARIMA_Four_temp_fit <- auto.arima(ts_load_daily_avg_train,
                                           K=c(2,12))
                              ))
 
-
 ARIMA_Four_temp_for <- forecast::forecast(ARIMA_Four_temp_fit,
-                           xreg=cbind(ts_temp_daily_test[1:365],fourier(ts_load_daily_avg_train,
-                                        K=c(2,12),
-                                        h=365)),
+                           xreg=cbind(ts_temp_daily_train,fourier(ts_load_daily_avg_train,
+                                        K=c(2,12)),
+                                        h=365),
                            h=365
                            ) 
 
@@ -302,36 +306,6 @@ autoplot(ARIMA_Four_temp_for) + ylab("Daily Load")
 autoplot(ts_load_daily_avg) +
   autolayer(ARIMA_Four_temp_for, series="ARIMA_FOURIER",PI=FALSE) +
   ylab("Daily Load")
-
-          ) 
-
-```
-```{r}
-#Arima model with fourier terms + humidity
-ARIMA_Four_humid_fit <- auto.arima(ts_load_daily_avg_train, 
-                             seasonal=FALSE, 
-                             lambda=0,
-                             xreg=cbind(ts_humid_daily_train,fourier(ts_load_daily_avg_train, 
-                                          K=c(2,12))
-                             ))
-
-
-ARIMA_Four_humid_for <- forecast::forecast(ARIMA_Four_humid_fit,
-                           xreg=cbind(ts_humid_daily_test[1:365],fourier(ts_load_daily_avg_train,
-                                        K=c(2,12),
-                                        h=365)),
-                           h=365
-                           ) 
-
-#Plot foresting results
-autoplot(ARIMA_Four_humid_for) + ylab("Daily Load")
-
-#Plot model + observed data
-autoplot(ts_load_daily_avg) +
-  autolayer(ARIMA_Four_humid_for, series="ARIMA_FOURIER",PI=FALSE) +
-  ylab("Daily Load")
-
-         
 ```
 
 
@@ -351,20 +325,9 @@ autoplot(ARIMA_with_temp_forecast) +
 
 ```{r}
 #SS Exponential Smoothing
-SSES_for <- es(ts_load_daily_avg_rm_na3[3,],model="AMM",h=31,holdout=FALSE,silent="none")
-plot(SSES_for)
+SSES_fit <- es(ts_load_daily_avg_train,model="MAM",h=365,holdout=FALSE,silent="none")
+plot(SSES_fit)
 ```
-
-```{r}
-SS_seas <- StructTS(ts_load_daily_avg,
-                    type="BSM",fixed=c(0,0.001,0.3,NA))   #this function has convergence issues
-
-#Generating forecasts
-# StructTS() does not call the forecast() internally so we need one more step
-SS_for <- forecast(SS_seas,h=31)
-plot(SS_for)
-```
-
 
 ```{r accuracy scores}
 #Model 1: STL + ETS
@@ -441,105 +404,18 @@ Forecast2 <- data.frame(load = SNAIVE_for[["mean"]])
 
 
 ```{r Forecast3}
-#Fourier term to model the multiple seasonality
-#NN_fit <- nnetar(ts_act_power_daily_train,p=1,P=1)
-NN_fit2 <- nnetar(ts_load_daily_avg,p=1,P=0,xreg=fourier(ts_load_daily_avg, K=c(2,12)))
-
-#NN_for <- forecast(NN_fit, h=365) 
-NN_for2 <- forecast::forecast(NN_fit2, h=31,xreg=fourier(ts_load_daily_avg, 
-                                          K=c(2,12),h=31))
-
-#Plot foresting results
-autoplot(NN_for2) +
-  ylab("Daily Load") 
+#SS Exponential Smoothing
+SSES_for <- es(ts_load_daily_avg,model="MMA",h=31,holdout=FALSE,silent="none")
+plot(SSES_for)
 
 #Convert forecasting results to dataframe
-
 Forecast <- data.frame(load = SSES_for)
-
-Forecast3 <- data.frame(load = NN_for2[["mean"]])
 ```
 
-```{r Forecast4}
-#SARIMA forecast for Jan 2022
-SARIMA_autofit3 <- auto.arima(ts_load_daily_avg)
-
-SARIMA_forecast3 <- forecast::forecast(object = SARIMA_autofit3,h = 31)
-
-autoplot(SARIMA_forecast3) + ylab("Daily Load")
-
-#Convert forecasting results to dataframe
-Forecast4 <- data.frame(load = SARIMA_forecast3[["mean"]])
-```
-
-```{r Forecast5}
-#SARIMA forecast with temperature for Jan 2022
-SARIMA_autofit2 <- auto.arima(ts_load_daily_avg,xreg=ts_temp_daily)
-print(SARIMA_autofit2)
-
-SARIMA_forecast2 <- forecast::forecast(object = SARIMA_autofit2, xreg=ts_temp_for2,h = 31)
-plot(SARIMA_forecast2)
-
-autoplot(SARIMA_forecast2) + ylab("Daily Load")
-
-#Convert forecasting results to dataframe
-Forecast5 <- data.frame(load = SARIMA_forecast3[["mean"]])
->>>>>>> 22c84a8a8aa25127fb1f26c65aa94490fd33a4c3
-```
-
-```{r forecast 6}
-#Arima+fourier+temp
-ARIMA_Four_temp_fit2 <- auto.arima(ts_load_daily_avg, 
-                             seasonal=FALSE, 
-                             lambda=0,
-                             xreg=cbind(ts_temp_daily,fourier(ts_load_daily_avg, 
-                                          K=c(2,12))
-                             ))
-
-
-ARIMA_Four_temp_for2 <- forecast::forecast(ARIMA_Four_temp_fit2,
-                           xreg=cbind(ts_temp_for2,fourier(ts_load_daily_avg,
-                                        K=c(2,12),
-                                        h=31)),
-                           h=31
-                           ) 
-autoplot(ARIMA_Four_temp_for2) + ylab("Daily Load")
-Forecast6 <- data.frame(load = ARIMA_Four_temp_for2[["mean"]])
-```
-
-```{r Forecast 7}
-#Arima+fourier+humidity
-ARIMA_Four_humid_fit2 <- auto.arima(ts_load_daily_avg, 
-                             seasonal=FALSE, 
-                             lambda=0,
-                             xreg=cbind(ts_humid_daily,fourier(ts_load_daily_avg, 
-                                          K=c(2,12))
-                             ))
-
-
-ARIMA_Four_humid_for2 <- forecast::forecast(ARIMA_Four_humid_fit2,
-                           xreg=cbind(ts_humid_for2,fourier(ts_load_daily_avg,
-                                        K=c(2,12),
-                                        h=31)),
-                           h=31
-                           ) 
-autoplot(ARIMA_Four_humid_for2) + ylab("Daily Load")
-Forecast7 <- data.frame(load = ARIMA_Four_humid_for2[["mean"]])
-```
 
 ```{r export results to excel}
 write.csv(Forecast1, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast1.csv")
 
 write.csv(Forecast2, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast2.csv")
-
-write.csv(Forecast3, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast3.csv")
-
-write.csv(Forecast4, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast4.csv")
-
-write.csv(Forecast5, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast5.csv")
-
-write.csv(Forecast6, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast6.csv")
-
-write.csv(Forecast7, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast7.csv")
 ```
 
