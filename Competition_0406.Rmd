@@ -525,6 +525,49 @@ autoplot(ARIMA_Four_humid_for2) + ylab("Daily Load")
 Forecast7 <- data.frame(load = ARIMA_Four_humid_for2[["mean"]])
 ```
 
+```{r}
+NN_temp_fit <- nnetar(ts_load_daily_avg,p=1,P=0,xreg=cbind(ts_temp_daily,fourier(ts_load_daily_avg, 
+                                          K=c(2,12))
+                             ))
+
+NN_temp_for <- forecast::forecast(NN_temp_fit,xreg=cbind(ts_temp_for2,fourier(ts_load_daily_avg,
+                                        K=c(2,12),
+                                        h=31)),
+                           h=31
+                           )
+
+
+#Plot foresting results
+autoplot(NN_temp_for) +
+  ylab("Daily Load") 
+
+#Convert forecasting results to dataframe
+
+Forecast8 <- data.frame(load = NN_temp_for[["mean"]])
+```
+
+```{r}
+NN_humid_fit <- nnetar(ts_load_daily_avg,p=1,P=0,xreg=cbind(ts_humid_daily,fourier(ts_load_daily_avg, 
+                                          K=c(2,12))
+                             ))
+
+NN_humid_for <- forecast::forecast(NN_humid_fit,xreg=cbind(ts_temp_for2,fourier(ts_load_daily_avg,
+                                        K=c(2,12),
+                                        h=31)),
+                           h=31
+                           )
+
+
+#Plot foresting results
+autoplot(NN_humid_for) +
+  ylab("Daily Load") 
+
+#Convert forecasting results to dataframe
+
+Forecast9 <- data.frame(load = NN_humid_for[["mean"]])
+```
+
+
 ```{r export results to excel}
 write.csv(Forecast1, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast1.csv")
 
@@ -539,5 +582,9 @@ write.csv(Forecast5, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competit
 write.csv(Forecast6, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast6.csv")
 
 write.csv(Forecast7, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast7.csv")
+
+write.csv(Forecast8, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast8.csv")
+
+write.csv(Forecast9, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast9.csv")
 ```
 
