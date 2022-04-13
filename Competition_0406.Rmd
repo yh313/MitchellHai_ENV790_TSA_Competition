@@ -482,7 +482,7 @@ autoplot(SARIMA_forecast2) + ylab("Daily Load")
 
 #Convert forecasting results to dataframe
 Forecast5 <- data.frame(load = SARIMA_forecast3[["mean"]])
->>>>>>> 22c84a8a8aa25127fb1f26c65aa94490fd33a4c3
+
 ```
 
 ```{r forecast 6}
@@ -567,6 +567,16 @@ autoplot(NN_humid_for) +
 Forecast9 <- data.frame(load = NN_humid_for[["mean"]])
 ```
 
+```{r forecast model 10}
+NN_fit3 <- nnetar(ts_load_daily_avg,xreg=fourier(ts_load_daily_avg, K=c(2,12)))
+
+#NN_for <- forecast(NN_fit, h=365) 
+NN_for3 <- forecast::forecast(NN_fit3,xreg=fourier(ts_load_daily_avg, 
+                                          K=c(2,12),h=31))
+autoplot(NN_for3)
+Forecast10 <- data.frame(load = NN_for3[["mean"]])
+```
+
 
 ```{r export results to excel}
 write.csv(Forecast1, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast1.csv")
@@ -586,5 +596,7 @@ write.csv(Forecast7, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competit
 write.csv(Forecast8, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast8.csv")
 
 write.csv(Forecast9, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast9.csv")
+
+write.csv(Forecast10, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast10.csv")
 ```
 
