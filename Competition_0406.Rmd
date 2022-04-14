@@ -138,12 +138,10 @@ autoplot(ts_load_daily_avg) +
 ```
 
 ```{r}
-#You can play with the different values for p and P, you can also use xreg with Fourier term to model the multiple seasonality
+#NN+fourier model forcing p=1,P=0 
 
-#NN_fit <- nnetar(ts_act_power_daily_train,p=1,P=1)
 NN_fit <- nnetar(ts_load_daily_avg_train,p=1,P=0,xreg=fourier(ts_load_daily_avg_train, K=c(2,12)))
 
-#NN_for <- forecast(NN_fit, h=365) 
 NN_for <- forecast::forecast(NN_fit, h=365,xreg=fourier(ts_load_daily_avg_train, 
                                           K=c(2,12),h=365))
 
@@ -183,7 +181,7 @@ autoplot(ts_load_daily_avg) +
 ```
 
 ```{r}
-#create temp forecasts
+#create temperature forecasts
 temp_fit <- auto.arima(ts_temp_daily_train, 
                              seasonal=FALSE, 
                              lambda=0,
@@ -301,7 +299,7 @@ autoplot(ts_load_daily_avg) +
   autolayer(ARIMA_Four_temp_for, series="ARIMA_FOURIER",PI=FALSE) +
   ylab("Daily Load")
 
-          ) 
+          
 
 ```
 ```{r}
@@ -347,22 +345,6 @@ autoplot(ARIMA_with_temp_forecast) +
   ylab("Daily Load")
 ```
 
-```{r}
-#SS Exponential Smoothing
-SSES_for <- es(ts_load_daily_avg_rm_na3[3,],model="AMM",h=31,holdout=FALSE,silent="none")
-plot(SSES_for)
-```
-
-```{r}
-SS_seas <- StructTS(ts_load_daily_avg,
-                    type="BSM",fixed=c(0,0.001,0.3,NA))   #this function has convergence issues
-
-#Generating forecasts
-# StructTS() does not call the forecast() internally so we need one more step
-SS_for <- forecast(SS_seas,h=31)
-plot(SS_for)
-```
-
 
 ```{r accuracy scores}
 #Model 1: STL + ETS
@@ -396,7 +378,7 @@ best_model_index <- which.min(scores[,"RMSE"])
 cat("The best model by RMSE is:", row.names(scores[best_model_index,]))  
 
 kbl(scores, 
-      caption = "Forecast Accuracy for Daily Active Power",
+      caption = "Forecast Accuracy for Load",
       digits = array(5,ncol(scores))) %>%
   kable_styling(full_width = FALSE, position = "center", latex_options = "hold_position") %>%
   #highlight model with lowest RMSE
@@ -439,11 +421,9 @@ Forecast2 <- data.frame(load = SNAIVE_for[["mean"]])
 
 
 ```{r Forecast3}
-#Fourier term to model the multiple seasonality
-#NN_fit <- nnetar(ts_act_power_daily_train,p=1,P=1)
+#NN+fourier
 NN_fit2 <- nnetar(ts_load_daily_avg,p=1,P=0,xreg=fourier(ts_load_daily_avg, K=c(2,12)))
 
-#NN_for <- forecast(NN_fit, h=365) 
 NN_for2 <- forecast::forecast(NN_fit2, h=31,xreg=fourier(ts_load_daily_avg, 
                                           K=c(2,12),h=31))
 
@@ -452,14 +432,11 @@ autoplot(NN_for2) +
   ylab("Daily Load") 
 
 #Convert forecasting results to dataframe
-
-Forecast <- data.frame(load = SSES_for)
-
 Forecast3 <- data.frame(load = NN_for2[["mean"]])
 ```
 
 ```{r Forecast4}
-#SARIMA forecast for Jan 2022
+#SARIMA
 SARIMA_autofit3 <- auto.arima(ts_load_daily_avg)
 
 SARIMA_forecast3 <- forecast::forecast(object = SARIMA_autofit3,h = 31)
@@ -471,7 +448,7 @@ Forecast4 <- data.frame(load = SARIMA_forecast3[["mean"]])
 ```
 
 ```{r Forecast5}
-#SARIMA forecast with temperature for Jan 2022
+#SARIMA forecast with temperature
 SARIMA_autofit2 <- auto.arima(ts_load_daily_avg,xreg=ts_temp_daily)
 print(SARIMA_autofit2)
 
@@ -525,7 +502,8 @@ autoplot(ARIMA_Four_humid_for2) + ylab("Daily Load")
 Forecast7 <- data.frame(load = ARIMA_Four_humid_for2[["mean"]])
 ```
 
-```{r}
+```{r Forecast 8}
+#NN+fourier+temperature and forcing p=1,P=0
 NN_temp_fit <- nnetar(ts_load_daily_avg,p=1,P=0,xreg=cbind(ts_temp_daily,fourier(ts_load_daily_avg, 
                                           K=c(2,12))
                              ))
@@ -546,12 +524,13 @@ autoplot(NN_temp_for) +
 Forecast8 <- data.frame(load = NN_temp_for[["mean"]])
 ```
 
-```{r}
+```{r Forecast 9}
+#NN+fourier+humidity and forcing p=1,P=0
 NN_humid_fit <- nnetar(ts_load_daily_avg,p=1,P=0,xreg=cbind(ts_humid_daily,fourier(ts_load_daily_avg, 
                                           K=c(2,12))
                              ))
 
-NN_humid_for <- forecast::forecast(NN_humid_fit,xreg=cbind(ts_temp_for2,fourier(ts_load_daily_avg,
+NN_humid_for <- forecast::forecast(NN_humid_fit,xreg=cbind(ts_humid_for2,fourier(ts_load_daily_avg,
                                         K=c(2,12),
                                         h=31)),
                            h=31
@@ -563,11 +542,11 @@ autoplot(NN_humid_for) +
   ylab("Daily Load") 
 
 #Convert forecasting results to dataframe
-
 Forecast9 <- data.frame(load = NN_humid_for[["mean"]])
 ```
 
-```{r forecast model 10}
+```{r Forecast 10}
+#NN+fourier
 NN_fit3 <- nnetar(ts_load_daily_avg,xreg=fourier(ts_load_daily_avg, K=c(2,12)))
 
 #NN_for <- forecast(NN_fit, h=365) 
@@ -576,6 +555,47 @@ NN_for3 <- forecast::forecast(NN_fit3,xreg=fourier(ts_load_daily_avg,
 autoplot(NN_for3)
 Forecast10 <- data.frame(load = NN_for3[["mean"]])
 ```
+```{r Forecast 11}
+NN_humid_fit4 <- nnetar(ts_load_daily_avg,xreg=cbind(ts_temp_daily,fourier(ts_load_daily_avg, 
+                                          K=c(2,12))
+                             ))
+
+NN_humid_for4 <- forecast::forecast(NN_humid_fit4,xreg=cbind(ts_temp_for2,fourier(ts_load_daily_avg,
+                                        K=c(2,12),
+                                        h=31)),
+                           h=31
+                           )
+
+
+#Plot foresting results
+autoplot(NN_humid_for4) +
+  ylab("Daily Load") 
+
+#Convert forecasting results to dataframe
+Forecast11 <- data.frame(load = NN_humid_for4[["mean"]])
+```
+
+```{r Forecast 12}
+#NN+fourier+humidity
+NN_humid_fit5 <- nnetar(ts_load_daily_avg,xreg=cbind(ts_humid_daily,fourier(ts_load_daily_avg, 
+                                          K=c(2,12))
+                             ))
+
+NN_humid_for5 <- forecast::forecast(NN_humid_fit5,xreg=cbind(ts_humid_for2,fourier(ts_load_daily_avg,
+                                        K=c(2,12),
+                                        h=31)),
+                           h=31
+                           )
+
+
+#Plot foresting results
+autoplot(NN_humid_for5) +
+  ylab("Daily Load") 
+
+#Convert forecasting results to dataframe
+Forecast12 <- data.frame(load = NN_humid_for5[["mean"]])
+```
+
 
 
 ```{r export results to excel}
@@ -598,5 +618,9 @@ write.csv(Forecast8, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competit
 write.csv(Forecast9, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast9.csv")
 
 write.csv(Forecast10, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast10.csv")
+
+write.csv(Forecast11, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast11.csv")
+
+write.csv(Forecast12, "~\\ENVIRON 790\\ENV790_TimeSeriesAnalysis_Sp2022\\Competition\\Output\\Forecast12.csv")
 ```
 
