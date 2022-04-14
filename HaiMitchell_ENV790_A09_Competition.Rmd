@@ -6,6 +6,10 @@ date: "2022/3/31"
 output: pdf_document
 ---
 
+Link to github repository:
+
+https://github.com/yh313/MitchellHai_ENV790_TSA_Competition
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,tidy.opts=list(width.cutoff=80), tidy=FALSE) 
 ```
